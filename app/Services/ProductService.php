@@ -38,6 +38,7 @@ class ProductService
         DB::beginTransaction();
         try
         {
+            $success = true;
             $product->product_name = $request->get('product_name');
             $product->product_description = $request->get('description');
             $product->save();
@@ -52,9 +53,11 @@ class ProductService
         }
         catch (\Exception $e)
         {
+            $success = false;
             DB::rollBack();
         }
         DB::commit();
+        return $success;
     }
 
     private function insert_prices_to_product($product, $prices)
