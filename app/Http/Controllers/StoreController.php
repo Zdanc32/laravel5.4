@@ -4,7 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Crud;
 use App\Price;
-use App\Product;
+use App\Models\Product;
+use App\Services\ProductService;
 use Cron\Tests\AbstractFieldTest;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,14 @@ use MongoDB\BSON\Regex;
 
 class StoreController extends Controller
 {
+
+    private $productService ;
+
+    public function __construct(ProductService $productService)
+    {
+        $this->productService = $productService;
+    }
+
     public function index()
     {
         $products = Product::all();
@@ -25,22 +34,7 @@ class StoreController extends Controller
     }
     public function store(Request $request)
     {
-        DB::beginTransaction();
-        try
-        {
-            $product = new Product([
-                'product_name' => $request->get('product_name'),
-                'product_description' => $request->get('description')
-            ]);
-            $product->save();
-            $prices = explode(',', $request->get('prices'));
-            $this->insert_prices_to_product($product, $prices);
-        }
-        catch (\Exception $e)
-        {
-            DB::rollBack();
-        }
-        DB::commit();
+        $this->productService->save($request);
         return redirect('/products');
     }
     public function edit(Product $product)
@@ -49,26 +43,7 @@ class StoreController extends Controller
     }
     public function update(Request $request, Product $product)
     {
-        DB::beginTransaction();
-        try
-        {
-            $product->product_name = $request->get('product_name');
-            $product->product_description = $request->get('description');
-            $product->save();
-            $prices = Price::where('product_dwfk', $product->product_dwid)->get();
-
-            foreach ($prices as $price) {
-                $price->delete();
-            }
-
-            $new_prices = explode(',', $request->get('prices'));
-            $this->insert_prices_to_product($product, $new_prices);
-        }
-        catch (\Exception $e)
-        {
-            DB::rollBack();
-        }
-        DB::commit();
+        $this->productService->update($product, $request);
         return redirect('/products');
 
     }
@@ -78,15 +53,4 @@ class StoreController extends Controller
         return redirect('/products');
     }
 
-    private function insert_prices_to_product($product, $prices)
-    {
-        foreach ($prices as $p)
-        {
-            $price = new Price([
-                'product_dwfk' => $product['product_dwid'],
-                'price' => $p
-            ]);
-            $price->save();
-        }
-    }
 }
