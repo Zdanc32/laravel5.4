@@ -50,14 +50,7 @@ class StoreController extends Controller
 
         $new_prices = explode(',', $request->get('prices'));
 
-        foreach ($new_prices as $np)
-        {
-            $price = new Price([
-                'product_dwfk' => $product['product_dwid'],
-                'price' => $np
-            ]);
-            $price->save();
-        }
+        $this->insert_prices_to_product($product, $new_prices);
 
         return redirect('/products');
     }
